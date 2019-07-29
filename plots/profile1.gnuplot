@@ -9,14 +9,15 @@ set multiplot layout 5,2 title "PKD+AVG Simulation (N=1000), Gain=20mV,$\\sigma_
 set xlabel "time(microseconds)"
 set ylabel "intensity(mV)"
 
-set ytics nomirror
-set y2tics
-
 #set xrange [9.98:10.02]
 
 plot '< ../build/avgsimu --noise=1.2 --nions=1 --pulsewidth=1.0 --gain=20.0 --gain-sigma=0.01 --width=1.0' using ($1*1e6):2 with linespoints pt 4 ps 1 title "Single-ion,G:20mV"
 
 plot '< ../build/avgsimu --noise=1.2 --nions=1 --pulsewidth=1.0 --gain=20.0 --gain-sigma=0.01 --width=1.0' using ($1*1e6):2 with linespoints pt 4 ps 1 title "Single-ion,G:20mV"
+
+set ytics nomirror
+set y2tics
+set y2label "Area"
 
 set ylabel "intensity(mV)"
 plot '< ../build/avgsimu --noise=1.2 --nions=1 --pulsewidth=1.0 --gain=20.0 --gain-sigma=10 --width=2.0 --ntrig=1000 --ztrig=0' \

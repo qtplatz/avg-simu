@@ -23,6 +23,7 @@
 **************************************************************************/
 
 #include "moment.hpp"
+#include "threshold_finder.hpp"
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -141,14 +142,45 @@ public:
             waveform_[ i ] = ion_.height( t, ions ) + noise( gen_ );
         }
     }
-
+    const std::pair< double, double >& time_range() const { return time_range_; }
     const std::vector< double >& waveform() const { return waveform_; }
     int32_t toDigital( double d ) const { return ( d / 1000.0 ) / vScale_; } // mV
     double toMilliVolts( int32_t d, size_t nAvg ) const { return ( d * vScale_ * 1000 ) / nAvg; } // mV
     double time( int i ) const { return time_range_.first + i * sampInterval_; }
 };
 
+////////////////////// COUNTING ////////////////////////
 
+class waveform_counting {
+    std::vector< uint32_t > hist_;
+    size_t nAvg_;
+    double Vth_;
+public:
+    waveform_counting( double v = 10 ) : nAvg_( 0 ), Vth_( v ) {
+    }
+
+    bool operator += ( const waveform_generator& wform ) {
+        if ( hist_.empty() ) {
+            hist_.resize( wform.waveform().size() );
+            std::fill( hist_.begin(), hist_.end(), 0 );
+        }
+
+        std::vector< uint32_t > indices;
+        adportable::counting::threshold_finder( true, 0 )( wform.waveform().begin(), wform.waveform().end(), indices, Vth_ );
+        for ( const auto& idx: indices ) {
+            if ( idx < hist_.size() )
+                hist_[ idx ]++;
+        }
+        ++nAvg_;
+        return true;
+    }
+    const std::vector< uint32_t >& adder() const { return hist_; }
+    std::vector< uint32_t >::const_iterator begin() const { return hist_.begin(); }
+    std::vector< uint32_t >::const_iterator end() const { return hist_.end(); }
+    size_t nAvg() const { return nAvg_; }
+};
+
+////////////////////// AVERAGE ////////////////////////
 class waveform_averager {
     std::vector< int32_t > adder_;
     size_t nAvg_;
@@ -166,14 +198,15 @@ public:
         }
 
         std::transform( w.begin(), w.end(), adder_.begin(), adder_.begin()
-                        , [&](const auto& a, const auto& b){
-                              //std::cout << "a=" << a << ", b=" << b << std::endl;
+                        , [&]( const auto& a, const auto& b ){
                               return wform.toDigital( a ) + b;
                           });
         ++nAvg_;
         return true;
     }
     const std::vector< int32_t > adder() const { return adder_; }
+    std::vector< int32_t >::const_iterator begin() const { return adder_.begin(); }
+    std::vector< int32_t >::const_iterator end() const { return adder_.end(); }
     size_t nAvg() const { return nAvg_; }
 };
 
@@ -195,8 +228,9 @@ main(int argc, char *argv[])
             ( "pulsewidth",  po::value< double >()->default_value( 1.0 ),    "single ion pulse width" )
             ( "gain",        po::value< double >()->default_value( 20 ),     "single ion average pulse height(mV)" )
             ( "gain-sigma",  po::value< double >()->default_value( 50 ),     "single ion average pulse sigma(mV)" )
-            ( "ntrig",       po::value< int >()->default_value( 1 ),         "number of triggers to be averaged" )
-            ( "ztrig",       po::value< int >()->default_value( 0 ),         "additional triggers w/o ion" )
+            ( "ntrig,N",     po::value< int >()->default_value( 1 ),         "number of triggers to be averaged" )
+            ( "ztrig,Z",     po::value< int >()->default_value( 0 ),         "additional triggers w/o ion" )
+            ( "counting,C",  "Counting" )
             ;
 
         po::positional_options_description p;
@@ -224,21 +258,58 @@ main(int argc, char *argv[])
 
     single_ion i( time, pulsewidth, width, gain, gain_sd ); // tof, mcp-width, analyzer-width, gain, gain-sd
 
-    waveform_generator x( i, noise, offset, interval, 1.0/4096, 300 );
+    waveform_generator wform( i, noise, offset, interval, 1.0/4096, 300 );
+
+    waveform_counting hist;
     waveform_averager avgr;
 
     for ( size_t i = 0; i < nTrig; ++i ) {
-        x.generate( nIons );
-        avgr += x;
+        wform.generate( nIons );
+        hist += wform;
+        avgr += wform;
     }
 
     for ( size_t i = 0; i < zTrig; ++i ) {
-        x.generate( 0 );
-        avgr += x;
+        wform.generate( 0 );
+        hist += wform;
+        avgr += wform;
     }
 
-    int idx(0);
-    for ( const auto& d: avgr.adder() ) {
-        std::cout << boost::format( "%g\t%g" ) % x.time( idx++ ) % x.toMilliVolts( d, avgr.nAvg() ) << std::endl;
+    size_t peak_pos = ( time - wform.time_range().first ) / interval + 0.5;
+    size_t peak_w = ( std::max( width, pulsewidth ) * 5 ) / interval + 0.5;
+    size_t spos = peak_pos - peak_w / 2;
+    size_t epos = peak_pos + peak_w / 2;
+
+    int count = 0;
+    size_t counts = std::accumulate( hist.begin() + spos, hist.begin() + epos, 0
+                                     , [&]( const auto& a, const auto& b ){
+                                           return a + b;
+                                       });
+
+    double area = std::accumulate( avgr.begin() + spos, avgr.end() + epos, 0.0
+                                   , [&]( const auto& a, const auto& b ){
+                                         return wform.toMilliVolts( b, avgr.nAvg() ) + a;
+                                     });
+
+    for ( size_t i = 0; i < avgr.adder().size(); ++i ) {
+        double t = wform.time( i );
+        double h = wform.toMilliVolts( avgr.adder()[ i ], avgr.nAvg() );
+        size_t c = hist.adder()[ i ];
+
+        int mark = 0;
+        double bar = 0;
+        if ( i == spos || i == epos )
+            bar = area / 10;
+
+        if ( i == peak_pos )
+            bar = area;
+
+        if ( i == spos || i == epos )
+            mark = counts / 10;
+
+        if ( i == peak_pos )
+            mark = counts;
+
+        std::cout << boost::format( "%g\t%g\t%d\t%g\t%d" ) % t % h % c % bar % mark << std::endl;
     }
 }

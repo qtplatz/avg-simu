@@ -26,6 +26,10 @@ if ( Boost_FOUND )
   include_directories( ${Boost_INCLUDE_DIRS} )
 endif()
 
+include_directories(
+  ${CMAKE_SOURCE_DIR}/../../qtplatz/src/libs/adportable/counting
+  ${CMAKE_SOURCE_DIR}/../../qtplatz/src/libs
+  )
 
 add_executable( ${PROJECT_NAME}
   main.cpp

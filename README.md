@@ -2,9 +2,11 @@
 
 Install
 
-`mkdir build`
-`cd build`
-`cmake ../src`
-`make`
-`cd ../plots`
-`make`
+```console
+$ mkdir build
+$ cd build
+$ cmake ../src
+$ make
+$ cd ../plots
+$ make
+```

@@ -7,4 +7,4 @@ Install
 `cmake ../src`
 `make`
 `cd ../plots`
-`make``
+`make`

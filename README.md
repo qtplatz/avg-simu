@@ -2,9 +2,9 @@
 
 Install
 
-mkdir build
-cd build
-cmake ../src
-make
-cd ../plots
-make
+`mkdir build`
+`cd build`
+`cmake ../src`
+`make`
+`cd ../plots`
+`make``

@@ -1,7 +1,14 @@
 HOST=$(shell hostname)
 UNAME := $(shell uname)
 
-all: profile.pdf profile1.pdf profile2.pdf profile3.pdf
+all: phd.pdf waveform.pdf
+#all: profile.pdf profile1.pdf profile2.pdf profile3.pdf
+
+phd.tex: phd.gnuplot ../build/avgsimu
+	gnuplot -c $< $@
+
+waveform.tex: waveform.gnuplot ../build/avgsimu
+	gnuplot -c $< $@
 
 profile.tex: profile.gnuplot ../build/avgsimu
 	gnuplot -c $< $@

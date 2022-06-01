@@ -7,7 +7,7 @@ cmake_policy(SET CMP0028 NEW)
 set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 set ( CMAKE_INCLUDE_CURRENT_DIR ON)
-set ( CMAKE_CXX_STANDARD 14 )
+set ( CMAKE_CXX_STANDARD 20 )
 
 include( "standalone.cmake" )
 
@@ -36,3 +36,9 @@ add_executable( ${PROJECT_NAME}
   )
 
 target_link_libraries( ${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES} )
+
+add_executable( cauchy
+  cauchy.cpp
+  )
+
+target_link_libraries( cauchy PUBLIC ${Boost_LIBRARIES} )

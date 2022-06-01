@@ -39,6 +39,8 @@ namespace po = boost::program_options;
 int centroid_error( boost::math::normal_distribution<>&, double, double
                     , std::normal_distribution<>&, std::mt19937&, bool random );
 
+int area( boost::math::normal_distribution<>&, double, double );
+
 int
 main(int argc, char *argv[])
 {
@@ -48,6 +50,7 @@ main(int argc, char *argv[])
         description.add_options()
             ( "help,h",      "Display this help message" )
             ( "centroid",    "Centroid error simulation" )
+            ( "area",        "Area calculation -- must be combination of --width and --offset" )
             ( "width",       po::value< double >()->default_value( 2  ),  "peak width (ns)" )
             ( "time",        po::value< double >()->default_value( 10 ),  "peak time (us)" )
             ( "rate",        po::value< double >()->default_value( 1  ),  "sampling rate (GS/s)" )
@@ -90,10 +93,14 @@ main(int argc, char *argv[])
 
         return centroid_error( nd, x0, interval, noise, gen, vm.count( "random" ) );
 
+    } else if ( vm.count( "area" ) ) {
+
+        return area( nd, x0, interval );
+
     } else {
 
         for ( int i = 0; i < 100; ++i ) {
-            
+
             double x = x0 + i * interval;
 
             std::cout <<
@@ -103,9 +110,9 @@ main(int argc, char *argv[])
                       << boost::format( ",\t%.14e,\t%.14e" )
                 % ( x + interval / 2 ) % ( noise( gen ) + boost::math::pdf( nd, x + interval / 2 ) / max_y )
                       << std::endl;
-        
+
         }
-    }    
+    }
 }
 
 int
@@ -121,22 +128,22 @@ centroid_error( boost::math::normal_distribution<>& nd
     // prepare noise array for apply same profile between phase shift
 
     if ( !random ) {
-        std::vector< double > noises;        
+        std::vector< double > noises;
         for ( int i = 0; i < 100; ++i )
             noises.emplace_back( noise(gen) );
 
         for ( int offset = (-div/2); offset < (div/2); ++offset ) {
             std::vector< double > x, y;
-            
+
             double max_y = boost::math::pdf( nd, nd.mean() );
-            
+
             for ( int i = 0; i < 100; ++i ) {
                 x.emplace_back( x0 + i * interval + (interval/div)*offset );
                 y.emplace_back( noises[ i ] + boost::math::pdf( nd, x.back() ) / max_y );
             }
-            
+
             adportable::Moment moment( [&]( int pos ){ return x[ pos ]; } );
-            
+
             std::cout <<
                 boost::format( "%.14le,\t%.14le,\t%.14le" )
                 % (offset*interval/div)
@@ -149,16 +156,16 @@ centroid_error( boost::math::normal_distribution<>& nd
 
         for ( int replicates = 0; replicates < div; ++replicates ) {
             std::vector< double > x, y;
-            
+
             double max_y = boost::math::pdf( nd, nd.mean() );
-            
+
             for ( int i = 0; i < 100; ++i ) {
                 x.emplace_back( x0 + i * interval );
                 y.emplace_back( noise(gen) + boost::math::pdf( nd, x.back() ) / max_y );
             }
-            
+
             adportable::Moment moment( [&]( int pos ){ return x[ pos ]; } );
-            
+
             std::cout <<
                 boost::format( "%d,\t%.14le,\t%.14le" )
                 % replicates
@@ -167,9 +174,34 @@ centroid_error( boost::math::normal_distribution<>& nd
                       << std::endl;
         }
     }
-    
+
     return 0;
 }
 
+int
+area( boost::math::normal_distribution<>& nd, double x0, double interval )
+{
+    const int div = 128;
 
+    // prepare noise array for apply same profile between phase shift
 
+    for ( int offset = (-div/2); offset < (div/2); ++offset ) {
+        std::vector< double > x, y;
+
+        double max_y = boost::math::pdf( nd, nd.mean() );
+
+        for ( int i = 0; i < 100; ++i ) {
+            x.emplace_back( x0 + i * interval + (interval/div)*offset );
+            y.emplace_back( noises[ i ] + boost::math::pdf( nd, x.back() ) / max_y );
+        }
+
+        adportable::Moment moment( [&]( int pos ){ return x[ pos ]; } );
+
+        std::cout <<
+            boost::format( "%.14le,\t%.14le,\t%.14le" )
+            % (offset*interval/div)
+            % moment.centreX( y.data(), 0.5, 35, 50, 65 )
+            % ( moment.centreX( y.data(), 0.5, 35, 50, 65 ) - nd.mean() )
+                  << std::endl;
+    }
+}

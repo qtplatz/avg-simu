@@ -37,6 +37,12 @@ add_executable( ${PROJECT_NAME}
 
 target_link_libraries( ${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES} )
 
+add_executable( pdf
+  pdf.cpp
+  )
+target_link_libraries( pdf PUBLIC ${Boost_LIBRARIES} )
+
+
 add_executable( cauchy
   cauchy.cpp
   )

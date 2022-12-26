@@ -54,9 +54,9 @@ main(int argc, char *argv[])
     std::random_device rd{};
     std::mt19937 gen{rd()};
 
-    auto cauchy = [&gen](const float x₀, const float 𝛾, int norm ) {
+    auto cauchy = [&gen](const float x, const float 𝛾, int norm ) {
 
-        std::cauchy_distribution<float> d{ x₀ /* a */, 𝛾 /* b */};
+        std::cauchy_distribution<float> d{ x /* a */, 𝛾 /* b */};
 
         // const int norm = 1'00'00;
         // const float cutoff = 0.005f;

@@ -47,7 +47,10 @@ struct single_trigger {
     double pulseheight_;
     double pulsedist_;
     single_trigger( size_t nions, double pulsewidth, double pulseheight, double pulsedist )
-        : nions_( nions ), pulsewidth_( pulsewidth ), pulseheight_( pulseheight ), pulsedist_( pulsedist ) {
+        : nions_( nions )
+        , pulsewidth_( pulsewidth )
+        , pulseheight_( pulseheight )
+        , pulsedist_( pulsedist ) {
     }
 };
 
@@ -125,7 +128,8 @@ public:
                                                , sampInterval_( sampInterval )
                                                , noise_( noise )
                                                , offset_( offset )
-                                               , time_range_( { ion.time() - size / 2 * sampInterval, ion.time() + size / 2 * sampInterval } )
+                                               , time_range_( { ion.time() - size / 2 * sampInterval
+                                                       , ion.time() + size / 2 * sampInterval } )
                                                , gen_( __rd__() )
                                                , waveform_( size ) {
         std::fill( waveform_.begin(), waveform_.end(), 0 );
@@ -159,12 +163,12 @@ class waveform_counting {
     size_t nAvg_;
     double Vth_;
 public:
-    waveform_counting( double v = 10 ) : nAvg_( 0 ), Vth_( v ) {
+    waveform_counting( double v = 0.010 ) : nAvg_( 0 ), Vth_( v ) {
     }
 
     bool operator += ( const waveform_generator& wform ) {
         if ( hist_.empty() ) {
-            hist_.resize( wform.waveform().size() );
+            hist_.resize( wform.waveform().size() + 1 );
             std::fill( hist_.begin(), hist_.end(), 0 );
         }
 
@@ -172,11 +176,12 @@ public:
         adportable::counting::threshold_finder( true, 0 )( wform.waveform().begin(), wform.waveform().end(), indices, Vth_ );
         for ( const auto& idx: indices ) {
             if ( idx < hist_.size() )
-                hist_[ idx ]++;
+                hist_[ idx + 1 ]++;
         }
         ++nAvg_;
         return true;
     }
+    uint32_t operator [] (size_t i) const { return hist_[ i ]; }
     const std::vector< uint32_t >& adder() const { return hist_; }
     std::vector< uint32_t >::const_iterator begin() const { return hist_.begin(); }
     std::vector< uint32_t >::const_iterator end() const { return hist_.end(); }
@@ -222,15 +227,15 @@ main(int argc, char *argv[])
     {
         description.add_options()
             ( "help,h",      "Display this help message" )
-            ( "width",       po::value< double >()->default_value(  4  ),    "analyzer peak width (ns)" )
+            ( "width",       po::value< double >()->default_value(  1  ),    "analyzer peak width (ns)" )
             ( "time",        po::value< double >()->default_value( 10  ),    "averaged peak time-of-flight (us)" )
             ( "rate",        po::value< double >()->default_value( 3.2 ),    "digitizer sampling rate (GS/s)" )
             ( "offset",      po::value< double >()->default_value(  0  ),    "digitizer sampling offset (ns)" )
             ( "noise",       po::value< double >()->default_value(  1.2  ),  "noise (mV)" )
             ( "nions",       po::value< int >()->default_value( 100 ),       "number of ions per each tof trigger" )
             ( "pulsewidth",  po::value< double >()->default_value( 1.0 ),    "single ion pulse width" )
-            ( "gain",        po::value< double >()->default_value( 20 ),     "single ion average pulse height(mV)" )
-            ( "gain-sigma",  po::value< double >()->default_value( 50 ),     "single ion average pulse sigma(mV)" )
+            ( "gain",        po::value< double >()->default_value( 25 ),     "single ion average pulse height(mV)" )
+            ( "gain-sigma",  po::value< double >()->default_value( 25 ),     "single ion average pulse sigma(mV)" )
             ( "ntrig,N",     po::value< int >()->default_value( 1 ),         "number of triggers to be averaged" )
             ( "ztrig,Z",     po::value< int >()->default_value( 0 ),         "additional triggers w/o ion" )
             ( "nbits",       po::value< int >()->default_value( 12 ),        "ADC nbits" )
@@ -297,7 +302,6 @@ main(int argc, char *argv[])
                                          , [&]( const auto& a, const auto& b ){
                                              return a + b;
                                          });
-
         double area = std::accumulate( avgr.begin() + spos, avgr.end() + epos, 0.0
                                        , [&]( const auto& a, const auto& b ){
                                            return wform.toVolts( b, avgr.nAvg() ) + a;
@@ -305,9 +309,10 @@ main(int argc, char *argv[])
 
 
         for ( size_t i = 0; i < avgr.adder().size(); ++i ) {
-            double t = wform.time( i );
-            double h = wform.toVolts( avgr.adder()[ i ], avgr.nAvg() );
-            size_t c = hist.adder()[ i ];
+            auto t  = wform.time( i );
+            auto a = avgr.adder()[ i ];
+            auto h  = wform.toVolts( avgr.adder()[ i ], avgr.nAvg() );
+            uint32_t c  = hist[ i ];
 
             int mark = 0;
             double bar = 0;
@@ -323,7 +328,14 @@ main(int argc, char *argv[])
             if ( i == peak_pos )
                 mark = counts;
 
-            std::cout << boost::format( "%g\t%g\t%d\t%g\t%d" ) % t % h % c % bar % mark << std::endl;
+            std::cout << boost::format("%.7e") % t
+                      << "\t" << boost::format("%8d") % a
+                      << "\t" << h
+                      << "\t" << c
+                      << "\t" << bar
+                      << "\t" << mark
+                      << std::endl;
+            // std::cout << boost::format( "%g\t%g\t%d\t%g\t%d" ) % t % h % c % bar % mark << std::endl;
         }
     } else if ( vm[ "output" ].as< std::string >() == "PHD" ) {
         std::mt19937 gen( __rd__() );

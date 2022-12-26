@@ -1,29 +1,32 @@
 HOST=$(shell hostname)
 UNAME := $(shell uname)
 
-all: phd.pdf waveform.pdf
-#all: profile.pdf profile1.pdf profile2.pdf profile3.pdf
+all: single_waveform.pdf averaged_waveform.pdf counting_waveform.pdf digital_averaging.pdf \
+	signal-to-noise.pdf saturation.pdf adc_linearity.pdf
 
-phd.tex: phd.gnuplot ../build/avgsimu
+saturation.tex: saturation.gnuplot
 	gnuplot -c $< $@
 
-waveform.tex: waveform.gnuplot ../build/avgsimu
+adc_linearity.tex: adc_linearity.gnuplot
 	gnuplot -c $< $@
 
-profile.tex: profile.gnuplot ../build/avgsimu
+single_waveform.tex: single_waveform.gnuplot
 	gnuplot -c $< $@
 
-profile1.tex: profile1.gnuplot ../build/avgsimu
+averaged_waveform.tex: averaged_waveform.gnuplot
 	gnuplot -c $< $@
 
-profile2.tex: profile2.gnuplot ../build/avgsimu Makefile
+counting_waveform.tex: counting_waveform.gnuplot
 	gnuplot -c $< $@
 
-profile3.tex: profile3.gnuplot ../build/avgsimu Makefile
+digital_averaging.tex: digital_averaging.gnuplot
+	gnuplot -c $< $@
+
+signal-to-noise.tex: signal-to-noise.gnuplot
 	gnuplot -c $< $@
 
 clean:
-	rm -f *.eps *.out *.aux *.log *.pdf *.tex
+	rm -f *.eps *.out *.aux *.log *.pdf *.tex *~
 
 .SUFFIXES: .tex .pdf
 

@@ -2,6 +2,7 @@ set terminal epslatex size 10.5in,6in color colortext standalone header \
 "\\usepackage{graphicx}\n\\usepackage{amsmath}\n\\usepackage[version=3]{mhchem}\n\\usepackage{siunitx}"
 
 set output ARG1
+load 'functions.gnuplot'
 #
 set multiplot layout 2,2 #title "PKD+AVG Simulation (N=1000), Gain=50mV,$\\sigma_{gain}$=50mV"
 #set datafile separator ","
@@ -43,7 +44,7 @@ do for [i=1:4] {
 
     set y2range [-y2FS[i]/10:y2FS[i]]
 
-    set title sprintf("%d GSPS, R.P.=\\num{%d}, C.R.=\\SI{%g}{\\percent}", rate, ((2*10E-6)/(aW*1.0e-9))+0.5, (CR*100))
+    set title sprintf("%d GSPS, R.P.=\\num{%d}, C.R.=\\SI{%g}{\\percent}", rate, RP(10, aW), (CR*100))
     plot 'tmp.txt' using ($1*1e6):(1000*$2/(4096*N)) with linespoints pt 4 ps 1 lw 5 title "AVG" \
 	 , 'tmp.txt' using ($1*1e6):($4) with linespoints lw 5 axes x1y2 title "Counts"
 }

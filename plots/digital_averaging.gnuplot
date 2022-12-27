@@ -9,7 +9,6 @@ set multiplot layout 2,2 #title "Digital Signal Averaging (RMS noise = 1.2 mV, s
 set xlabel "Time (\\si{\\micro\\second})"
 set ylabel "Intensity (mV)"
 
-
 set xrange [9.98:10.02]
 
 # RP = 2t/dt

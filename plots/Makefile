@@ -1,29 +1,49 @@
 HOST=$(shell hostname)
 UNAME := $(shell uname)
 
-all: single_waveform.pdf averaged_waveform.pdf counting_waveform.pdf digital_averaging.pdf \
-	signal-to-noise.pdf saturation.pdf adc_linearity.pdf
+TARGETS = single_waveform.pdf single_waveform_40.pdf \
+	averaged_waveform.pdf counting_waveform.pdf digital_averaging.pdf \
+	signal-to-noise.pdf saturation.pdf adc_linearity.pdf \
+	pkd+avg.pdf pkd+avg2.pdf \
+	aperture-jitter.pdf
 
-saturation.tex: saturation.gnuplot
+all: ${TARGETS}
+
+aperture-jitter.tex: aperture-jitter.gnuplot
+	gnuplot -c $< $@
+
+pkd+avg.tex: pkd+avg.gnuplot functions.gnuplot
+	gnuplot -c $< $@
+
+pkd+avg2.tex: pkd+avg2.gnuplot functions.gnuplot
+	gnuplot -c $< $@
+
+saturation.tex: saturation.gnuplot functions.gnuplot
 	gnuplot -c $< $@
 
 adc_linearity.tex: adc_linearity.gnuplot
 	gnuplot -c $< $@
 
-single_waveform.tex: single_waveform.gnuplot
+single_waveform.tex: single_waveform.gnuplot functions.gnuplot
 	gnuplot -c $< $@
 
-averaged_waveform.tex: averaged_waveform.gnuplot
+single_waveform_40.tex: single_waveform_40.gnuplot functions.gnuplot
 	gnuplot -c $< $@
 
-counting_waveform.tex: counting_waveform.gnuplot
+averaged_waveform.tex: averaged_waveform.gnuplot functions.gnuplot
 	gnuplot -c $< $@
 
-digital_averaging.tex: digital_averaging.gnuplot
+counting_waveform.tex: counting_waveform.gnuplot functions.gnuplot
+	gnuplot -c $< $@
+
+digital_averaging.tex: digital_averaging.gnuplot functions.gnuplot
 	gnuplot -c $< $@
 
 signal-to-noise.tex: signal-to-noise.gnuplot
 	gnuplot -c $< $@
+
+install:
+	cp ${TARGETS} ~/Documents/osaka-u.git/2023-01-26/figures/
 
 clean:
 	rm -f *.eps *.out *.aux *.log *.pdf *.tex *~

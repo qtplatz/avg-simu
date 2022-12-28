@@ -3,7 +3,8 @@ UNAME := $(shell uname)
 
 TARGETS = single_waveform.pdf single_waveform_40.pdf \
 	averaged_waveform.pdf counting_waveform.pdf digital_averaging.pdf \
-	signal-to-noise.pdf saturation.pdf adc_linearity.pdf \
+	signal-to-noise.pdf signal-to-noise_linear.pdf \
+	saturation.pdf adc_linearity.pdf \
 	pkd+avg.pdf pkd+avg2.pdf \
 	aperture-jitter.pdf
 
@@ -40,6 +41,9 @@ digital_averaging.tex: digital_averaging.gnuplot functions.gnuplot
 	gnuplot -c $< $@
 
 signal-to-noise.tex: signal-to-noise.gnuplot
+	gnuplot -c $< $@
+
+signal-to-noise_linear.tex: signal-to-noise_linear.gnuplot
 	gnuplot -c $< $@
 
 install:

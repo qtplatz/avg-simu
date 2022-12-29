@@ -115,6 +115,7 @@ class waveform_generator {
     std::pair< double, double > time_range_;
     std::mt19937 gen_;
     std::vector< double > waveform_;
+    double vFS_;
 public:
 
     waveform_generator( const single_ion& ion
@@ -131,7 +132,8 @@ public:
                                                , time_range_( { ion.time() - size / 2 * sampInterval
                                                        , ion.time() + size / 2 * sampInterval } )
                                                , gen_( __rd__() )
-                                               , waveform_( size ) {
+                                               , waveform_( size )
+                                               , vFS_( vFS ) {
         std::fill( waveform_.begin(), waveform_.end(), 0 );
     }
 
@@ -145,7 +147,8 @@ public:
 
         for ( size_t i = 0; i < waveform_.size(); ++i ) {
             double t = time_range_.first + i * sampInterval_;
-            waveform_[ i ] = ion_.height( t, ions ) + noise( gen_ );
+            double h = ion_.height( t, ions ) + noise( gen_ );
+            waveform_[ i ] = h > vFS_ ? vFS_ : h;
         }
         return true;
     }

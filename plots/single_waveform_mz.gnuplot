@@ -9,7 +9,7 @@ load 'pdf.gnuplot'
 set multiplot layout 2,2 columnsfirst #title "Simulated waveform averaging (50 mV, gain $\\sigma=$\\SI{1e-6}{\\milli\\volt})"
 #set datafile separator ","
 
-set xlabel "Time (\\si{\\micro\\second})"
+set xlabel "\\textit{m/z}"
 set ylabel "Intensity (mV)"
 
 set yrange [-5:50]
@@ -34,17 +34,20 @@ TOFlist[ 4 ] = 60
 do for [i=1:4] {
     tof = TOFlist[ i ]
     aW  = RP2W( tof, RPlist[ i ] )
+    m = accutof_mass( tof*1e-6, 0 )
+    w = m / RPlist[ i ]
 
-    set xrange [tof-0.02:tof+0.02]
-    y2fs = nd(tof,tof,aW/1000)
+    set xrange [accutof_mass(tof*1e-6,0)-0.5:accutof_mass(tof*1e-6, 0)+0.5]
+    y2fs = nd(m,m,w)
     set y2range [-y2fs*0.1:y2fs*1.1]
 
     system( "../build/avgsimu " . sprintf(ARGS, aW, rate, tof) . " > tmp.txt" )
 
-    set label 1 at tof,aY sprintf("%g ns", aW) offset -1,0.5 front
-    set arrow 1 from (tof - (aW * 1e-3)),aY to (tof + (aW * 1e-3)),aY heads linecolor rgb "red" lw 5 front
+    set label 1 at m,aY sprintf("%.2f mDa", w*1000) offset -1,0.5 front
+    set arrow 1 from (m - w),aY to (m + w),aY heads linecolor rgb "red" lw 5 front
     set title sprintf("R.P.=\\num{%g}, \\textit{m/z} %g", RP(tof, aW), floor( accutof_mass( tof*1E-6, 0 ) ) )
     n = i + 2
-    plot nd(x,tof,aW/1000) with filledcurves fc "gray" fs solid 0.2 axes x1y2 notitle \
-	 , for [i=1:n] '< ../build/avgsimu ' . sprintf(ARGS, aW, rate, tof) using ($1*1e6):(1000*$2/4096) with linespoints pt i+4 lc i ps 1 lw 2 notitle \
+
+    plot nd(x,m,w) with filledcurves fc "gray" fs solid 0.2 axes x1y2 notitle \
+	 , for [i=1:n] '< ../build/avgsimu ' . sprintf(ARGS, aW, rate, tof) using (accutof_mass($1,0)):(1000*$2/4096) with linespoints pt i+4 lc i ps 1 lw 2 notitle \
 }

@@ -3,6 +3,8 @@ set terminal epslatex size 10.5in,6in color colortext standalone header \
 
 set output ARG1
 load 'functions.gnuplot'
+load 'pdf.gnuplot'
+
 #
 set multiplot layout 2,2 title "Simulated waveform averaging (50 mV, gain $\\sigma=$\\SI{1e-6}{\\milli\\volt})"
 #set datafile separator ","
@@ -27,8 +29,9 @@ rate = 2
 
 do for [i=1:4] {
     aW = aWlist[ i ]
-    set label 1 at 10,aY "$3\\sigma$" offset -1,0.5
-    set arrow 1 from (10 - (aW * 3e-3)),aY to (10 + (aW * 3e-3)),aY heads linecolor rgb "red" lw 5
+    set label 1 at 10,aY "$3\\sigma$" offset -1,0.5 front
+    set arrow 1 from (10 - (aW * 3e-3)),aY to (10 + (aW * 3e-3)),aY heads linecolor rgb "red" lw 5 front
     set title sprintf("%d GSPS, R.P.=\\num{%g}", rate, RP(10, aW) )
-    plot for [i=1:3] '< ../build/avgsimu ' . sprintf(ARGS, aW) using ($1*1e6):(1000*$2/4096) with linespoints pt i+4 ps 1 lw 2 notitle
+    plot nd(x,10,aW/1000) with filledcurves fc "gray" fs solid 0.2 axes x1y2 notitle \
+	 , for [i=1:3] '< ../build/avgsimu ' . sprintf(ARGS, aW) using ($1*1e6):(1000*$2/4096) with linespoints pt i+4 lc i ps 1 lw 2 notitle \
 }
